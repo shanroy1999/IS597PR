@@ -15,7 +15,7 @@ class StormRecord:
         # Process only lines that have a valid date format
         if line[:8].isdigit():
             date = line[:8]  # Extract the date
-            time = line[9:13].strip().zfill(4)  # Extract and format the time to 4 characters
+            time = line[9:14].strip().zfill(4)  # Extract and format the time to 4 characters
             datetime_str = (date + time)[:12]  # Ensure the datetime string has exactly 12 characters
 
             # Attempt to convert the string to a datetime object
@@ -28,7 +28,7 @@ class StormRecord:
             # Extract wind speed and pressure, handling missing data
             self.wind_speed = int(line[38:41].strip()) if line[38:41].strip() != '-999' else 0
             self.pressure = int(line[43:47].strip()) if line[43:47].strip() != '-999' else float('inf')
-            self.landfall = 'L' in line[13:15]  # Check if the record indicates landfall
+            self.landfall = 'L' in line[16:17].strip()  # Check if the record indicates landfall
 
             # Extract latitude and handle invalid data gracefully
             try:
@@ -88,7 +88,7 @@ class Storm:
 
         # Return the summary statistics
         return {
-            'summary': f"{self.id} {self.name} Duration: {duration.days} days {duration.seconds//3600} hours, Max Wind: {max_wind} knots, Min Pressure: {min_pressure} mb, Landfalls: {landfalls}",
+            'summary': f"{self.id} {self.name} Start: {start} End: {end} Duration: {duration.days} days {duration.seconds//3600} hours, Max Wind: {max_wind} knots, Min Pressure: {min_pressure} mb, Landfalls: {landfalls}",
             'year': start.year,
             'peak_category': peak_category,
             'originated_within_tropics': originated_within_tropics,
@@ -143,9 +143,6 @@ class HURDATProcessor:
 
         # Write output to file
         with open(output_file, 'w') as out_file:
-            for storm in self.storms:
-                out_file.write(storm['summary'] + '\n')
-
             # Write annual statistics
             out_file.write("\nYear    Storms  Cat1  Cat2  Cat3  Cat4  Cat5\n")
             for year in range(min(yearly_summary), max(yearly_summary) + 1):
@@ -154,10 +151,15 @@ class HURDATProcessor:
 
             # Write tropical origin and stay statistics
             out_file.write(f"\nPercentage of storms that ORIGINATED within the Tropics: {originated_tropics / total_storms * 100:.2f}%\n")
-            out_file.write(f"Percentage of storms that STAYED ENTIRELY within the Tropics: {stayed_tropics / total_storms * 100:.2f}%\n")
+            out_file.write(f"Percentage of storms that STAYED ENTIRELY within the Tropics: {stayed_tropics / total_storms * 100:.2f}%\n\n")
+
+            # Write summary for the storms
+            for storm in self.storms:
+                out_file.write(storm['summary'] + '\n')
 
 # Main program execution
 if __name__ == "__main__":
-    processor = HURDATProcessor(['hurdat2_atlantic.txt', 'hurdat2_pacific.txt'])
+    processor = HURDATProcessor(['hurdat2-1851-2023-051124.txt', 'hurdat2-nepac-1949-2023-042624.txt'])
     processor.process_files()
     processor.generate_output()
+
